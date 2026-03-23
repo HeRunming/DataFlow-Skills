@@ -70,6 +70,10 @@ These are **preferred primitives**, not fixed workflows. They can be used repeat
 
 `GeneralFilter` lambda rules must ONLY reference fields that exist in sample data or are produced by upstream steps.
 
+## Multi-Field Filtering Pattern (MANDATORY)
+
+`PromptedFilter` only accepts a single `input_key`. For multi-field evaluation (e.g., scoring QA pairs), use `FormatStrPromptedGenerator` to score + `GeneralFilter` to filter.
+
 ## Output Contract (MANDATORY)
 
 **Two-stage output required**:
@@ -162,13 +166,19 @@ APILLMServing_request(
 - Each rule must return boolean `pd.Series`. Referenced fields must already exist.
 
 **6) `KBCCompositeCleaningFlashOperator`**
-- Constructor: `KBCCompositeCleaningFlashOperator(llm_serving, intermediate_dir="...", mineru_model_path=None, chunk_size=512, chunk_overlap=50, lang="en")`
+- Constructor: `KBCCompositeCleaningFlashOperator(llm_serving, intermediate_dir="...", mineru_model_path="opendatalab/MinerU2.5-2509-1.2B", chunk_size=512, chunk_overlap=50, lang="en")`
+- `mineru_model_path` is **required** — passing `None` raises `ValueError`. Use a HuggingFace model ID or local path.
 - Run: `run(storage=self.storage.step(), input_key="source", output_key="cleaned_chunk")`
 - Internal chain: input_key → `text_path` → `raw_chunk` → `output_key`. Input must be file path/URL.
 
 ### Correct Import Paths (MANDATORY)
 
 ```python
+# Base components
+from dataflow.utils.storage import FileStorage
+from dataflow.serving import APILLMServing_request
+
+# Operators
 from dataflow.operators.core_text import PromptedGenerator, FormatStrPromptedGenerator, Text2QAGenerator, PromptedFilter, GeneralFilter
 from dataflow.operators.knowledge_cleaning import KBCCompositeCleaningFlashOperator
 ```
@@ -196,6 +206,6 @@ See `examples/` folder for complete workflows:
 1. **`examples/basic_generate_and_filter.md`** — `PromptedGenerator` + `PromptedFilter` (simplest pattern)
 2. **`examples/multifield_scoring.md`** — `FormatStrPromptedGenerator` with multi-field scoring
 3. **`examples/multi_stage_pipeline.md`** — Multiple `PromptedGenerator` stages + `GeneralFilter`
-4. **`examples/kbc_pdf_to_qa.md`** — `KBCCompositeCleaningFlashOperator` + `Text2QAGenerator` + `PromptedFilter`
+4. **`examples/kbc_pdf_to_qa.md`** — `KBCCompositeCleaningFlashOperator` + `Text2QAGenerator` + `FormatStrPromptedGenerator` + `GeneralFilter`
 
 These are strategy guidance, not templates to copy blindly. Generated code must follow standard pipeline structure.
