@@ -1,12 +1,13 @@
 ---
 name: dataflow-operator-builder
-description: Builds production-grade DataFlow operator scaffolds (generate/filter/refine/eval) for Codex and general coding agents. Use when user asks to create a new DataFlow operator, scaffold operator templates, add OPERATOR_REGISTRY registration, add DataFlowStorage-based CLI wrappers, or generate operator test suites.
-version: 1.0.0
+description: Build production-grade DataFlow operator scaffolds (generate/filter/refine/eval) for Codex and coding agents. Trigger when users ask to create/new/scaffold operators, add OPERATOR_REGISTRY registration, generate DataFlowStorage-based CLI wrappers, or generate operator unit/registry/smoke tests.
 ---
 
 # DataFlow Operator Builder
 
-Generate production-ready DataFlow operator artifacts with a fixed two-round interview workflow.
+Build production-ready DataFlow operator artifacts with either interactive interview mode or direct spec mode.
+
+ZH: 通过“交互采访模式”或“直接 spec 模式”快速生成生产可用的 DataFlow Operator。
 
 ## Usage
 
@@ -18,70 +19,79 @@ Generate production-ready DataFlow operator artifacts with a fixed two-round int
 
 ## Script Directory
 
-**Agent Execution Instructions**:
-1. Determine this `SKILL.md` directory as `SKILL_DIR`
-2. Use script path `${SKILL_DIR}/scripts/build_operator_artifacts.py`
+Agent execution instructions:
+1. Resolve this `SKILL.md` directory as `SKILL_DIR`.
+2. Use `${SKILL_DIR}/scripts/build_operator_artifacts.py`.
+
+ZH:
+1. 将当前 `SKILL.md` 所在目录作为 `SKILL_DIR`。
+2. 使用 `${SKILL_DIR}/scripts/build_operator_artifacts.py`。
 
 | Script | Purpose |
 |--------|---------|
-| `scripts/build_operator_artifacts.py` | Instantiate operator + CLI + tests from interview spec |
-| `scripts/example_spec.json` | Reference input spec |
+| `scripts/build_operator_artifacts.py` | Generate operator + CLI + tests from spec |
+| `scripts/example_spec.json` | Example input spec with defaults |
 
 ## Scope
 
 This skill targets:
-- DataFlow main-repo coding style
-- `DataFlowStorage`-based operator implementation
-- `OPERATOR_REGISTRY.register()` registration
-- Separate CLI wrapper file for human-in-the-loop usage
-- Minimal but production-grade test skeleton
+- DataFlow-style operator implementation (`DataFlowStorage` + dataframe flow)
+- `@OPERATOR_REGISTRY.register()` registration
+- Separate CLI wrapper under `cli/`
+- Minimal but production-grade tests (`unit/registry/smoke`)
 
-Default operator families:
+ZH:
+- 面向 DataFlow 风格的 operator 实现（`DataFlowStorage` + dataframe 流程）
+- 自动包含 `@OPERATOR_REGISTRY.register()` 注册
+- CLI 与 operator 逻辑分离
+- 生成最小但可用的测试骨架（`unit/registry/smoke`）
+
+Default families:
 - `generate`
 - `filter`
 - `refine`
 - `eval`
 
-## Two-Round Interview (Required)
+## Two Working Modes
 
-Use **AskUserQuestion** in **batch mode** for each round. Do not ask one-by-one.
+### Mode A: Interactive Interview Mode
 
-### Round 1 (Structure)
+Use **AskUserQuestion** in **batch mode** with exactly two rounds:
+- Round 1: structure fields
+- Round 2: implementation fields
 
-Ask in one batch:
-1. Operator family (`generate/filter/refine/eval`)
-2. Class name + output module file name
-3. Package name + output root path
-4. Whether LLM dependency is needed
-5. CLI module name
+Important:
+- In each question block, include recommended option + short reason.
+- Ask follow-up questions only when high-impact fields are missing or contradictory.
+- Do not ask one-by-one when the same round can be asked in one batch.
 
-### Round 2 (Implementation details)
+ZH:
+- 使用 AskUserQuestion 且每轮“批量提问”，固定两轮。
+- 每个问题块给出“推荐选项 + 简短理由”。
+- 仅在高影响字段缺失或冲突时追问。
 
-Ask in one batch:
-1. `input_key` and `output_key`
-2. Chinese/English operator description preference
-3. Extra CLI args (if any)
-4. Test file prefix
-5. Overwrite strategy (`overwrite-all/skip-existing/ask-each`)
-
-Interview schemas and recommended options:
+Interview schema:
 - `references/askuserquestion-rounds.md`
 
-## Workflow
+### Mode B: Direct Spec Mode
 
-Copy this checklist and check off while executing:
+When user already provides `--spec`, skip interview and run directly.
+
+ZH: 用户已提供 `--spec` 时，直接执行，不再采访。
+
+## Required Workflow
 
 ```text
 Operator Builder Progress:
 - [ ] Step 1: Load references
-- [ ] Step 2: Round 1 AskUserQuestion (batch)
-- [ ] Step 3: Round 2 AskUserQuestion (batch)
-- [ ] Step 4: Build JSON spec
-- [ ] Step 5: Dry-run file plan
-- [ ] Step 6: Confirm overwrite policy (light guardrail)
-- [ ] Step 7: Generate files
-- [ ] Step 8: Quick validation
-- [ ] Step 9: Report generated artifacts
+- [ ] Step 2: Choose mode (Interactive or Spec)
+- [ ] Step 3: Build/validate spec JSON
+- [ ] Step 4: Dry-run file plan
+- [ ] Step 5: Confirm overwrite policy (light guardrail)
+- [ ] Step 6: Generate files
+- [ ] Step 7: Run validation (none/basic/full)
+- [ ] Step 8: Write runtime log events
+- [ ] Step 9: Report generated artifacts + validation results
 ```
 
 ### Step 1: Load References
@@ -91,19 +101,34 @@ Read:
 - `references/registration-rules.md`
 - `references/cli-shell-guidelines.md`
 - `references/gotchas.md`
+- `references/acceptance-checklist.md`
 
-### Step 2-3: Interview with AskUserQuestion
+### Step 2: Interview or Direct Spec
 
-Strictly follow `references/askuserquestion-rounds.md`.
+- Interactive mode: follow `references/askuserquestion-rounds.md` strictly.
+- Spec mode: parse user-provided spec directly.
 
-### Step 4: Build Spec JSON
+### Step 3: Build Spec JSON
 
-Create a spec file using:
+Use:
 - `scripts/example_spec.json`
 
-### Step 5: Dry-Run
+Required spec fields:
+- `package_name`
+- `operator_type`
+- `operator_class_name`
+- `operator_module_name`
+- `input_key`
+- `output_key`
+- `uses_llm`
 
-Run:
+Optional spec fields (with defaults):
+- `cli_module_name` (default: `<operator_module_name>_cli`)
+- `test_file_prefix` (default: `<operator_module_name>`)
+- `overwrite_strategy` (default: `ask-each`)
+- `validation_level` (default: `full`)
+
+### Step 4: Dry-Run
 
 ```bash
 python "${SKILL_DIR}/scripts/build_operator_artifacts.py" \
@@ -112,18 +137,16 @@ python "${SKILL_DIR}/scripts/build_operator_artifacts.py" \
   --dry-run
 ```
 
-### Step 6: Light Guardrail (Required)
+### Step 5: Light Guardrail (Required)
 
 Before writing files, show:
-- Full file creation/update list
-- Which files already exist
-- Selected overwrite policy
+- full create/update file list
+- existing files
+- selected overwrite strategy
 
-Then ask for explicit confirmation (`y/N`).
+Then ask for explicit confirmation: `y/N`.
 
-### Step 7: Generate
-
-Run without `--dry-run`:
+### Step 6: Generate
 
 ```bash
 python "${SKILL_DIR}/scripts/build_operator_artifacts.py" \
@@ -131,21 +154,42 @@ python "${SKILL_DIR}/scripts/build_operator_artifacts.py" \
   --output-root <repo-root>
 ```
 
-### Step 8: Quick Validation
+Useful flags:
+- `--overwrite {ask-each,overwrite-all,skip-existing}` (override spec)
+- `--validation-level {none,basic,full}`
+- `--log-dir <path>`
+- `--no-log`
 
-- Ensure generated operator imports successfully
-- Ensure class is decorated with `@OPERATOR_REGISTRY.register()`
-- Ensure tests are generated in `test/`
+### Step 7: Validation
+
+- `none`: skip validation
+- `basic`: import + registry + test file existence
+- `full`: `basic` + runtime smoke execution
+
+### Step 8: Runtime Logs (Light Memory)
+
+Default log root:
+- `${CLAUDE_PLUGIN_DATA}/dataflow-operator-builder/` if env exists
+- else `%USERPROFILE%/.codex_plugin_data/dataflow-operator-builder/`
+
+JSONL events:
+- `dry_run`
+- `generate_start`
+- `generate_done`
+- `validate_done`
+- `cancelled`
+- `error`
 
 ### Step 9: Output Summary
 
 Report:
-- Operator class
-- Paths generated/updated
-- Overwrite behavior
-- Suggested next test commands
+- operator class
+- generated/updated paths
+- overwrite behavior
+- validation level and pass/fail details
+- suggested next test command(s)
 
-## File Layout Produced by Script
+## File Layout Produced
 
 ```text
 <output-root>/
@@ -166,6 +210,11 @@ Report:
 
 ## Notes
 
-- This skill does not maintain runtime memory logs.
-- This skill uses light guardrails, not strict blocking.
-- Prefer behavior-level customization after scaffold generation.
+- Keep behavior-level customization after scaffold generation.
+- Keep operator description contract bilingual (`get_desc(lang='zh'/'en')`).
+- Runtime messages should remain clear English.
+
+ZH:
+- 建议先生成骨架，再做行为细化。
+- `get_desc` 需保持中英文双语契约。
+- 终端输出信息应以英文为主，清晰可读。

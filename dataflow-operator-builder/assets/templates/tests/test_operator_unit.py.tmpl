@@ -33,26 +33,39 @@ def _build_operator():
 [[END_IF_NOT_USES_LLM]]
 
 
-def test_run_adds_output_column():
-    storage = _MemoryStorage(pd.DataFrame({"{{INPUT_KEY}}": ["a", "b"]}))
+def test_run_writes_output_and_expected_row_count():
+    storage = _MemoryStorage(pd.DataFrame({"{{INPUT_KEY}}": ["alpha", ""]}))
     op = _build_operator()
 [[IF_FILTER]]
-    out = op.run(storage=storage, input_key="{{INPUT_KEY}}", output_key="{{OUTPUT_KEY}}", min_length=1)
+    out = op.run(
+        storage=storage,
+        input_key="{{INPUT_KEY}}",
+        output_key="{{OUTPUT_KEY}}",
+        min_length=1,
+        drop_filtered=True,
+    )
+    assert out == "{{OUTPUT_KEY}}"
+    assert "{{OUTPUT_KEY}}" in storage.dataframe.columns
+    assert len(storage.dataframe) == 1
 [[END_IF_FILTER]]
 [[IF_NOT_FILTER]]
     out = op.run(storage=storage, input_key="{{INPUT_KEY}}", output_key="{{OUTPUT_KEY}}")
-[[END_IF_NOT_FILTER]]
     assert out == "{{OUTPUT_KEY}}"
     assert "{{OUTPUT_KEY}}" in storage.dataframe.columns
+    assert len(storage.dataframe) == 2
+[[END_IF_NOT_FILTER]]
 
 
 def test_run_raises_when_input_key_missing():
     storage = _MemoryStorage(pd.DataFrame({"other": ["x"]}))
     op = _build_operator()
-    with pytest.raises(KeyError):
+    with pytest.raises(KeyError) as exc:
 [[IF_FILTER]]
         op.run(storage=storage, input_key="{{INPUT_KEY}}", output_key="{{OUTPUT_KEY}}", min_length=1)
 [[END_IF_FILTER]]
 [[IF_NOT_FILTER]]
         op.run(storage=storage, input_key="{{INPUT_KEY}}", output_key="{{OUTPUT_KEY}}")
 [[END_IF_NOT_FILTER]]
+    message = str(exc.value)
+    assert "Missing input column" in message
+    assert "Available columns" in message

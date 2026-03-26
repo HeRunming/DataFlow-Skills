@@ -30,7 +30,8 @@ class {{OPERATOR_CLASS_NAME}}(OperatorABC):
     ):
         dataframe = storage.read("dataframe")
         if input_key not in dataframe.columns:
-            raise KeyError(f"Missing input column: {input_key}")
+            available_columns = ", ".join(map(str, dataframe.columns.tolist())) or "<empty>"
+            raise KeyError(f"Missing input column: {input_key}. Available columns: {available_columns}")
 
         series = dataframe[input_key].fillna("").astype(str)
         dataframe[output_key] = series.map(lambda x: len(x.strip()) >= min_length)

@@ -9,20 +9,38 @@ from {{PACKAGE_NAME}}.operators.{{OPERATOR_TYPE}}.{{OPERATOR_MODULE}} import {{O
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="CLI wrapper for {{OPERATOR_CLASS_NAME}}")
-    parser.add_argument("--input", required=True, help="Input file path")
-    parser.add_argument("--input-key", default="{{INPUT_KEY}}", help="Input column name")
-    parser.add_argument("--output-key", default="{{OUTPUT_KEY}}", help="Output column name")
-    parser.add_argument("--cache-path", default="./cache", help="Cache directory")
-    parser.add_argument("--cache-prefix", default="{{OPERATOR_MODULE}}", help="Cache file prefix")
-    parser.add_argument("--cache-type", default="jsonl", help="Cache type: json/jsonl/csv/parquet/pickle")
+    parser = argparse.ArgumentParser(
+        description="Run {{OPERATOR_CLASS_NAME}} on a DataFlow dataset.",
+    )
+    parser.add_argument("--input", required=True, help="Path to input dataset file.")
+    parser.add_argument("--input-key", default="{{INPUT_KEY}}", help="Input column name.")
+    parser.add_argument("--output-key", default="{{OUTPUT_KEY}}", help="Output column name.")
+    parser.add_argument("--cache-path", default="./cache", help="Cache directory for intermediate files.")
+    parser.add_argument("--cache-prefix", default="{{OPERATOR_MODULE}}", help="Output cache file prefix.")
+    parser.add_argument(
+        "--cache-type",
+        default="jsonl",
+        help="Cache file format: json, jsonl, csv, parquet, or pickle.",
+    )
 [[IF_USES_LLM]]
-    parser.add_argument("--api-url", default="https://api.openai.com/v1/chat/completions", help="LLM API URL")
-    parser.add_argument("--model-name", default="gpt-4o-mini", help="LLM model name")
+    parser.add_argument("--api-url", default="https://api.openai.com/v1/chat/completions", help="LLM API URL.")
+    parser.add_argument("--model-name", default="gpt-4o-mini", help="LLM model name.")
 [[END_IF_USES_LLM]]
 [[IF_FILTER]]
-    parser.add_argument("--min-length", type=int, default=1, help="Minimum valid text length")
-    parser.add_argument("--drop-filtered", action="store_true", help="Drop rows that do not pass filter")
+    parser.add_argument("--min-length", type=int, default=1, help="Minimum text length to keep.")
+    parser.set_defaults(drop_filtered=True)
+    parser.add_argument(
+        "--drop-filtered",
+        dest="drop_filtered",
+        action="store_true",
+        help="Drop rows that fail the filter rule (default behavior).",
+    )
+    parser.add_argument(
+        "--keep-filtered",
+        dest="drop_filtered",
+        action="store_false",
+        help="Keep all rows and only write the boolean marker column.",
+    )
 [[END_IF_FILTER]]
     return parser
 
