@@ -7,7 +7,7 @@ Reusable agent skills for DataFlow workflows.
 ---
 
 ## `generating-dataflow-pipeline`
-video tutorial: [Generate Pipeline](https://github.com/user-attachments/assets/ca1fefbf-9bf7-469f-b856-b201952fb99b)
+video tutorial: [Generate DataFlow Pipeline](https://github.com/user-attachments/assets/ca1fefbf-9bf7-469f-b856-b201952fb99b)
 
 Reasoning-guided pipeline planner that generates standard DataFlow pipeline code from a task description and sample data.
 
